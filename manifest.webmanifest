@@ -1,0 +1,50 @@
+{
+  "name": "Pomodoro Timer App",
+  "short_name": "Pomodoro",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "description": "helps you manage your time effectively using the Pomodoro Technique and stay focused on your tasks and overcome procrastination.",
+  "icons": [
+    { "src": "/icons/icon-192.png", 
+      "sizes": "192x192", 
+      "type": "image/png" 
+    },
+    { "src": "/icons/icon-512.png", 
+      "sizes": "512x512", 
+      "type": "image/png" 
+    },
+    { "src": "/icons/maskable-512.png", 
+      "sizes": "512x512", 
+      "type": "image/png", 
+      "purpose": "maskable" 
+    }
+  ],
+  "screenshots": [
+  {
+    "src": "screenshots/desktop-dark.png",
+    "sizes": "1920x870",
+    "type": "image/png",
+    "form_factor": "wide"
+  },
+  {
+    "src": "screenshots/desktop-light.png",
+    "sizes": "1920X870",
+    "type": "image/png",
+    "form_factor": "wide"
+  },
+  {
+    "src": "screenshots/mobile-light.png",
+    "sizes": "644x850",
+    "type": "image/png"
+  },
+  {
+    "src": "screenshots/mobile-dark.png",
+    "sizes": "642x844",
+    "type": "image/png"
+  }
+]
+
+}

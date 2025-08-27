@@ -10,6 +10,11 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Use refs to store timer state for background operation
+  const startTimeRef = useRef<number | null>(null);
+  const totalDurationRef = useRef<number>(25 * 60);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+
   // Audio context for generating pleasant notification sound
   const playNotificationSound = () => {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -30,6 +35,38 @@ function App() {
     oscillator.stop(audioContext.currentTime + 0.5);
   };
 
+   // Request wake lock to prevent screen from sleeping (for mobile)
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+      }
+    } catch (err) {
+      console.log('Wake lock not supported or failed:', err);
+    }
+  };
+
+  // Release wake lock
+  const releaseWakeLock = () => {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+  };
+
+
+   // Calculate time left based on elapsed time (more reliable for background)
+  const calculateTimeLeft = () => {
+    if (!startTimeRef.current) return totalDurationRef.current;
+    
+    const now = Date.now();
+    const elapsed = Math.floor((now - startTimeRef.current) / 1000);
+    const remaining = Math.max(0, totalDurationRef.current - elapsed);
+    
+    return remaining;
+  };
+
+  // Final victory message
   const playVictory=()=>{
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -63,48 +100,148 @@ function App() {
     oscillator.stop(audioContext.currentTime + 3.0);
   }
 
-  useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      // Timer finished
-      
-      setIsRunning(false);
-      
-      if (mode === 'work') {
-        // Switch to break
-        setMode('rest');
-        setTimeLeft(5 * 60); // 5 minutes break
-        setCycles(prev => prev + 1);
-        
-        // Check if we've completed 4 cycles
-        if (cycles + 1 >= 4) {
-          setShowVictory(true);
-          playVictory();
-        } else {
-          // Auto-start break
-          playNotificationSound();
-          setTimeout(() => setIsRunning(true), 1000);
-        }
-      } else {
-        // Switch back to work
-        playNotificationSound();
-        setMode('work');
-        setTimeLeft(25 * 60); // 25 minutes work
-        
-        // Auto-start work session
-        setTimeout(() => setIsRunning(true), 1000);
+   useEffect(() => {
+    if (isRunning) {
+      // Set start time when timer begins
+      if (!startTimeRef.current) {
+        startTimeRef.current = Date.now();
+        totalDurationRef.current = timeLeft;
       }
+      
+      // Request wake lock when timer starts
+      requestWakeLock();
+      
+      intervalRef.current = setInterval(() => {
+        const remaining = calculateTimeLeft();
+        setTimeLeft(remaining);
+        
+        // Check if timer finished
+        if (remaining === 0) {
+          // Timer finished
+          playNotificationSound();
+          setIsRunning(false);
+          startTimeRef.current = null;
+          releaseWakeLock();
+          
+          if (mode === 'work') {
+            // Switch to break
+            setMode('rest');
+            const breakTime = 5 * 60;
+            setTimeLeft(breakTime);
+            totalDurationRef.current = breakTime;
+            setCycles(prev => prev + 1);
+            
+            // Check if we've completed 1 cycle
+            if (cycles + 1 >= 4) {
+              playVictory();
+              setShowVictory(true);
+            } else {
+              // Auto-start break
+              setTimeout(() => {
+                setIsRunning(true);
+                startTimeRef.current = Date.now();
+              }, 1000);
+            }
+          } else {
+            // Switch back to work
+            setMode('work');
+            const workTime = 25 * 60;
+            setTimeLeft(workTime);
+            totalDurationRef.current = workTime;
+            
+            // Auto-start work session
+            setTimeout(() => {
+              setIsRunning(true);
+              startTimeRef.current = Date.now();
+            }, 1000);
+          }
+        }
+      }, 100); // Update more frequently for smoother display
+    } else {
+      // Timer paused or stopped
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      
+      // Reset start time when paused
+      if (startTimeRef.current) {
+        totalDurationRef.current = timeLeft;
+        startTimeRef.current = null;
+      }
+      
+      releaseWakeLock();
     }
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      releaseWakeLock();
     };
-  }, [isRunning, timeLeft, mode, cycles]);
+  }, [isRunning, mode, cycles]);
+
+  // Handle page visibility changes (when tab becomes hidden/visible)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && isRunning) {
+        // Tab became hidden - store current state
+        if (startTimeRef.current) {
+          totalDurationRef.current = calculateTimeLeft();
+        }
+      } else if (!document.hidden && isRunning) {
+        // Tab became visible - recalculate time
+        if (startTimeRef.current) {
+          const remaining = calculateTimeLeft();
+          setTimeLeft(remaining);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isRunning]);
+
+  // Legacy timer logic removed - replaced with timestamp-based approach above
+  // const legacyTimerEffect = useEffect(() => {
+  //   if (false) { // Disabled legacy logic
+  //     // Timer finished
+  //     playNotificationSound();
+  //     setIsRunning(false);
+      
+  //     if (mode === 'work') {
+  //       // Switch to break
+  //       setMode('rest');
+  //       setTimeLeft(2 * 60); // 2 minutes break
+  //       setCycles(prev => prev + 1);
+        
+  //       // Check if we've completed 2 cycles
+  //       if (cycles + 1 >= 1) {
+  //         setShowVictory(true);
+  //       } else {
+  //         // Auto-start break
+  //         setTimeout(() => setIsRunning(true), 1000);
+  //       }
+  //     } else {
+  //       // Switch back to work
+  //       setMode('work');
+  //       setTimeLeft(5 * 60); // 5 minutes work
+        
+  //       // Auto-start work session
+  //       setTimeout(() => setIsRunning(true), 1000);
+  //     }
+  //   }
+
+  //   return () => {
+  //     if (intervalRef.current) {
+  //       clearInterval(intervalRef.current);
+  //     }
+  //   };
+  // }, [isRunning, timeLeft, mode, cycles]);
+
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -353,7 +490,7 @@ function App() {
       {/* Footer */}
       <div className="mt-8 text-center">
         <p className={`text-sm transition-colors duration-700 ${
-          isDarkMode ? 'text-gray-500' : 'text-gray-950'
+          isDarkMode ? 'text-gray-400' : 'text-gray-950'
         }`}>
           Pomodoro Technique: 25 min work • 5 min break • Beat procrastination
         </p>
