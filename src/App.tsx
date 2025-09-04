@@ -346,16 +346,16 @@ function App() {
 
       {/* Cycle Counter */}
       <div className="mb-8">
-        <div className={`backdrop-blur-lg rounded-2xl px-6 py-3 transition-all duration-700 ${
+        <div className={`backdrop-blur-lg rounded-2xl px-4 md:px-6 py-3 transition-all duration-700 ${
           isDarkMode 
             ? 'bg-black/40 border-2' 
             : 'bg-white/80 border-2 border-gray-200/60'
         }`} style={isDarkMode ? { borderColor: '#383636' } : {backgroundColor: '#BDAD9E'}}>
-          <div className={`flex items-center gap-3 transition-colors duration-700 ${
+          <div className={`flex items-center gap-2 md:gap-3 transition-colors duration-700 ${
             isDarkMode ? 'text-gray-300' : 'text-gray-700'
           }`}>
             <Clock size={24} />
-            <span className="text-xl font-semibold">
+            <span className="text-lg md:text-xl font-semibold">
               Cycles Completed: {cycles}/4
             </span>
           </div>
@@ -375,7 +375,7 @@ function App() {
       </div>
 
       {/* Main Timer Display */}
-      <div className={`backdrop-blur-lg rounded-3xl p-3 lg:p-4 shadow-2xl max-w-sm lg:max-w-md w-full h-3/5 transition-all duration-700 ${
+      <div className={`backdrop-blur-lg rounded-3xl p-3 lg:p-4 shadow-2xl max-w-sm lg:max-w-md w-11/12 h-2/5 lg:h-3/5 transition-all duration-700 ${
         isDarkMode
           ? 'bg-black/60 border-2 shadow-gray-600/20'
           : 'border-2 border-gray-200/60 shadow-gray-200/20'
@@ -390,7 +390,7 @@ function App() {
             ) : (
               <Coffee size={32} />
             )}
-            <h2 className={`text-3xl font-bold transition-colors duration-700 ${
+            <h2 className={`text-2xl lg:text-3xl font-bold transition-colors duration-700 ${
               isDarkMode 
                 ? 'text-gray-300' 
                 : 'text-gray-700'
@@ -411,7 +411,7 @@ function App() {
         {/* Timer Display */}
         <div className="text-center mb-8">
           <div className="relative">
-            <div className={`text-6xl font-mono font-bold mb-4 transition-colors duration-700 ${
+            <div className={`text-4xl lg:text-6xl font-mono font-bold mb-4 transition-colors duration-700 ${
               isDarkMode ? 'text-gray-300' : 'text-gray-800'
             }`}>
               {formatTime(timeLeft)}
